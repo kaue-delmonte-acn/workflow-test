@@ -12,9 +12,9 @@ jobs:
   create-terraform-backend:
     environment: ${{ inputs.environment }}
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: .github/workflows/terraform/backend
+    # defaults:
+    #   run:
+    #     working-directory: .github/workflows/terraform/backend
     steps:
       - name: Echo environment
         run: |
