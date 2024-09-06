@@ -10,7 +10,7 @@ on:
 
 jobs:
   create-infrastructure:
-    name:
+    name: Create Infrastructure
     environment: ${{ inputs.environment }}
     runs-on: ubuntu-latest
     # defaults:
@@ -24,6 +24,7 @@ jobs:
           echo "vars: ${{ toJSON(vars) }}"
 
       - name: Creates terraform backend
+        if: !cancelled()
         run: echo "Creating terraform backend"
 
       # - name: Checkout code
