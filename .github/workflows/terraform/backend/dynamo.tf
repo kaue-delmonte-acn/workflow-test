@@ -1,5 +1,8 @@
+resource "random_uuid" "backend" {}
+
 resource "aws_dynamodb_table" "backend" {
-  name           = "terraform-backend-state-database"
+  name = "terraform-backend-state-database-${random_uuid.backend.result}"
+
   read_capacity  = 20
   write_capacity = 20
   hash_key       = "LockID"

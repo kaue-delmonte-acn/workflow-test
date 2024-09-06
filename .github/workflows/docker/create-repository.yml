@@ -1,0 +1,8 @@
+name: Create Terraform Backend
+on: workflow_call
+jobs:
+  create-terraform-backend:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create Terraform Backend
+        run: echo create-terraform-backend

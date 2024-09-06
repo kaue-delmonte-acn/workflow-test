@@ -5,10 +5,10 @@ resource "aws_kms_key" "backend" {
 }
 
 resource "aws_kms_alias" "bucket" {
-  name          = "alias/terraform-backend-bucket-key"
+  name_prefix   = "alias/terraform-backend-bucket-key-"
   target_key_id = aws_kms_key.backend.key_id
 }
 
-output "kms_key_id" {
-  value = aws_kms_key.backend.id
+output "kms_key_arn" {
+  value = aws_kms_key.backend.arn
 }

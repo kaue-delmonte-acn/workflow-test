@@ -8,30 +8,24 @@ on:
 jobs:
   check-terraform-backend:
     name: Checks for Terraform Backend
-    runs-on: ubuntu-latest
-    environment: ${{ github.ref_name }}
-    steps:
-        uses: ./.github/workflows/terraform/create-terraform-backend.yml
-        with:
-          TERRAFORM_BACKEND_KMS_KEY_ID: ${{ vars.TERRAFORM_BACKEND_KMS_KEY_ID }}
-          TERRAFORM_BACKEND_BUCKET_ARN: ${{ vars.TERRAFORM_BACKEND_BUCKET_ARN }}
-          TERRAFORM_BACKEND_DYNAMODB_TABLE: ${{ vars.TERRAFORM_BACKEND_DYNAMODB_TABLE}}
+    uses: ./.github/workflows/create-terraform-backend.yml
+    secrets: inherit
 
-  check-docker-repository:
-    name: Checks for Docker Repository
-    runs-on: ubuntu-latest
-    environment: ${{ github.ref_name }}
-    steps:
-      - if: ${{ !env.DOCKER_REPOSITORY_URL }}
-        uses: ./github/workflows/docker/create-repository.yml
-        env:
-          DOCKER_REPOSITORY_URL: ${{ secrets.DOCKER_REPOSITORY_URL }}
+  # check-docker-repository:
+  #   name: Checks for Docker Repository
+  #   runs-on: ubuntu-latest
+  #   environment: ${{ github.ref_name }}
+  #   steps:
+  #     - if: ${{ !env.DOCKER_REPOSITORY_URL }}
+  #       uses: ./github/workflows/docker/create-repository.yml
+  #       env:
+  #         DOCKER_REPOSITORY_URL: ${{ secrets.DOCKER_REPOSITORY_URL }}
 
-  build-docker-image:
-    name: Build Docker image
-    needs: check-docker-repository
-    runs-on: ubuntu-latest
-    environment: ${{ github.ref_name }}
-    steps:
-      - uses: ./.github/workflows/docker/build-image.yml
-      secrets:
+  # build-docker-image:
+  #   name: Build Docker image
+  #   needs: check-docker-repository
+  #   runs-on: ubuntu-latest
+  #   environment: ${{ github.ref_name }}
+  #   steps:
+  #     - uses: ./.github/workflows/docker/build-image.yml
+  #     secrets:
