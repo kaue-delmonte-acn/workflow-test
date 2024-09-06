@@ -1,0 +1,64 @@
+name: Create Terraform Backend
+
+on:
+  workflow_dispatch:
+    inputs:
+      TERRAFORM_BACKEND_KMS_KEY_ID:
+        description: Terraform Backend S3 KMS key ID
+        required: false
+        type: string
+      TERRAFORM_BACKEND_BUCKET_ARN:
+        description: Terraform Backend S3 Bucket ARN
+        required: false
+        type: string
+      TERRAFORM_BACKEND_DYNAMODB_TABLE:
+        description: Terraform Backend DynamoDB Table
+        required: false
+        type: string
+
+jobs:
+  create-terraform-backend:
+    runs-on: ubuntu-latest
+    if: ${{ !inputs.TERRAFORM_BACKEND_KMS_KEY_ID && !inputs.TERRAFORM_BACKEND_BUCKET_ARN && !inputs.TERRAFORM_BACKEND_DYNAMODB_TABLE }}
+    defaults:
+      run:
+        working-directory: ./.github/workflows/terraform/backend
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Plan
+        run: terraform plan
+
+      - name: Terraform Apply
+        run: terraform apply -auto-approve
+
+      - name: Get Terraform Output
+        run: |
+          echo "bucket_arn=$(terraform output -raw bucket_arn)" >> $GITHUB_ENV
+          echo "kms_key_id=$(terraform output -raw kms_key_id)" >> $GITHUB_ENV
+          echo "dynamodb_table=$(terraform output -raw dynamodb_table)" >> $GITHUB_ENV
+
+      - name: Set up GitHub CLI
+        run: |
+          sudo apt-get update
+          sudo apt-get install gh -y
+
+      - name: Github CLI Authentication
+        run: gh auth login --with-token <<< ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Save outputs to repository environment
+        run: |
+          gh secret set TF_BACKEND_BUCKET_ARN --body "${{ env.bucket_arn }}"
+          gh secret set TF_BACKEND_KMS_KEY_ID --body "${{ env.kms_key_id }}"
+          gh secret set TF_BACKEND_DYNAMODB_TABLE --body "${{ env.dynamodb_table }}"
