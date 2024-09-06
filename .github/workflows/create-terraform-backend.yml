@@ -10,8 +10,7 @@ on:
 
 jobs:
   create-terraform-backend:
-    environment:
-      name: main
+    environment: ${{ inputs.environment }}
     runs-on: ubuntu-latest
     if: ${{ !vars.TERRAFORM_BACKEND_KMS_KEY_ARN && !vars.TERRAFORM_BACKEND_BUCKET_ARN && !vars.TERRAFORM_BACKEND_DYNAMODB_TABLE }}
     # defaults:
