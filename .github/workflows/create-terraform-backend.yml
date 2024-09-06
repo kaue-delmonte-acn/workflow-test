@@ -1,4 +1,4 @@
-name: Create Terraform Backend
+name: Terraform Backend
 
 on:
   workflow_call:
@@ -9,20 +9,19 @@ on:
         default: ${{ github.ref_name }}
 
 jobs:
-  create-terraform-backend:
+  create-infrastructure:
+    name:
     environment: ${{ inputs.environment }}
     runs-on: ubuntu-latest
     # defaults:
     #   run:
     #     working-directory: .github/workflows/terraform/backend
     steps:
-      - name: Echo environment
-        run: |
-          echo '${{ toJSON(vars) }}'
-
-      - name: Check terraform backend
+      - name: Checks for terraform backend
         if: ${{ !vars.TERRAFORM_BACKEND_KMS_KEY_ARN && !vars.TERRAFORM_BACKEND_BUCKET_ARN && !vars.TERRAFORM_BACKEND_DYNAMODB_TABLE }}
-        run: echo "Checking terraform backend"
+        run: |
+          echo "environment: ${{ inputs.environment }}"
+          echo "vars: ${{ toJSON(vars) }}"
 
       - name: Creates terraform backend
         run: echo "Creating terraform backend"
