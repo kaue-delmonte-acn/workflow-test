@@ -12,16 +12,21 @@ jobs:
   create-terraform-backend:
     environment: ${{ inputs.environment }}
     runs-on: ubuntu-latest
-    if: ${{ !vars.TERRAFORM_BACKEND_KMS_KEY_ARN && !vars.TERRAFORM_BACKEND_BUCKET_ARN && !vars.TERRAFORM_BACKEND_DYNAMODB_TABLE }}
-    # defaults:
-    #   run:
-    #     working-directory: .github/workflows/terraform/backend
+    defaults:
+      run:
+        working-directory: .github/workflows/terraform/backend
     steps:
       - name: Echo environment
         run: |
-          echo '${{ toJSON(github) }}'
-          echo '${{ toJSON(secrets) }}'
           echo '${{ toJSON(vars) }}'
+
+      - name: Check terraform backend
+        if: ${{ !vars.TERRAFORM_BACKEND_KMS_KEY_ARN && !vars.TERRAFORM_BACKEND_BUCKET_ARN && !vars.TERRAFORM_BACKEND_DYNAMODB_TABLE }}
+        run: echo "Checking terraform backend"
+
+      - name: Creates terraform backend
+        run: echo "Creating terraform backend"
+
       # - name: Checkout code
       #   uses: actions/checkout@v4
 
