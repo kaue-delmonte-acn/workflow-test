@@ -9,26 +9,27 @@ on:
         default: ${{ github.ref_name }}
 
 jobs:
-  create-infrastructure:
-    name: Create Infrastructure
-    environment: ${{ inputs.environment }}
+  check-backend:
+    name: Check Terraform Backend
     runs-on: ubuntu-latest
-    # defaults:
-    #   run:
-    #     working-directory: .github/workflows/terraform/backend
+    environment: ${{ inputs.environment }}
     steps:
-      - name: Checks for terraform backend
+      - name: Checks for Terraform Backend environment variables
         if: ${{ !vars.TERRAFORM_BACKEND_KMS_KEY_ARN && !vars.TERRAFORM_BACKEND_BUCKET_ARN && !vars.TERRAFORM_BACKEND_DYNAMODB_TABLE }}
         run: |
           echo "environment: ${{ inputs.environment }}"
           echo "vars: ${{ toJSON(vars) }}"
-
-      - name: Creates terraform backend
-        if: !cancelled()
-        run: echo "Creating terraform backend"
-
-      # - name: Checkout code
-      #   uses: actions/checkout@v4
+  create-backend:
+    name: Creates Terraform Backend
+    if: !cancelled()
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    defaults:
+      run:
+        working-directory: .github/workflows/terraform/backend
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
       # - name: Configure AWS credentials
       #   uses: aws-actions/configure-aws-credentials@v4
