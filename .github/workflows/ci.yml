@@ -10,9 +10,6 @@ jobs:
     name: Checks/Create Terraform Backend
     uses: ./.github/workflows/create-terraform-backend.yml
     secrets: inherit
-    permissions:
-      variables: write
-      environments: write
 
   # check-docker-repository:
   #   name: Checks for Docker Repository
