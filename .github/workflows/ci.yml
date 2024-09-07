@@ -7,7 +7,7 @@ on:
 
 jobs:
   check-terraform-backend:
-    name: Checks for Terraform Backend
+    name: Checks/Create Terraform Backend
     uses: ./.github/workflows/create-terraform-backend.yml
     secrets: inherit
 

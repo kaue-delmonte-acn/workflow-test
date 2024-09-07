@@ -21,6 +21,7 @@ jobs:
           echo "vars: ${{ toJSON(vars) }}"
   create-backend:
     name: Creates Terraform Backend
+    needs: check-backend
     if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     environment: ${{ inputs.environment }}
