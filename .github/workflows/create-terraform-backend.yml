@@ -23,7 +23,7 @@ jobs:
     runs-on: ubuntu-latest
     environment: ${{ inputs.environment }}
     needs: check-backend
-    if: needs.check-backend.outputs.exists
+    if: !needs.check-backend.outputs.exists
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
