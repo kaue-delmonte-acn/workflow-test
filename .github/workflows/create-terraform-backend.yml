@@ -24,10 +24,11 @@ jobs:
     environment: ${{ inputs.environment }}
     needs: check-backend
     if: ${{ !needs.check-backend.outputs.exists }}
+    permissions:
+      contents: write
     defaults:
       run:
         working-directory: .github/workflows/terraform/backend
-    permissions: write-all
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
