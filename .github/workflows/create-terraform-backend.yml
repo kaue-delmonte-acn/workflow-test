@@ -22,7 +22,7 @@ jobs:
       exists: ${{ steps.check.outputs.exists }}
     steps:
       - name: Checks for Terraform Backend environment variables
-        if: ${{ !vars.TERRAFORM_BACKEND_KMS_KEY_ARN && !vars.TERRAFORM_BACKEND_BUCKET_ARN && !vars.TERRAFORM_BACKEND_DYNAMODB_TABLE }}
+        if: ${{ vars.TERRAFORM_BACKEND_KMS_KEY_ARN && vars.TERRAFORM_BACKEND_BUCKET_ARN && vars.TERRAFORM_BACKEND_DYNAMODB_TABLE }}
         run: echo "exists=true" >> $GITHUB_OUTPUT
         id: check
 
@@ -89,7 +89,7 @@ jobs:
       #     && sudo apt install gh -y
 
   upsert-variables:
-    name: Create/Update Repository Terraform Backend environment variables
+    name: Set Repository Environment Variables
     runs-on: ubuntu-latest
     needs: create-backend
     steps:
