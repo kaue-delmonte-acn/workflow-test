@@ -20,7 +20,7 @@ jobs:
     steps:
       - name: Save terraform outputs to repository environment
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
           gh variable set TEST_VAR -b "THIS IS A TEST VARIABLE" -e ${{ inputs.environment }} -R ${{ github.repository }}
 
