@@ -73,7 +73,7 @@ jobs:
       - name: Get Terraform Output
         id: terraform
         run: |
-          echo "kms_arn=$(terraform output -raw kms_arn)" >> $GITHUB_OUTPUT
+          echo "kms_arn=$(terraform output -raw kms_key_arn)" >> $GITHUB_OUTPUT
           echo "bucket_arn=$(terraform output -raw bucket_arn)" >> $GITHUB_OUTPUT
           echo "dynamodb_table=$(terraform output -raw dynamodb_table)" >> $GITHUB_OUTPUT
 
