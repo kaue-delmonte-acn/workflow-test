@@ -7,109 +7,99 @@ on:
         required: true
         description: Github Token with repository environments read-write permission.
     inputs:
-      environment:
+      ENVIRONMENT:
         type: string
         required: false
         default: ${{ github.ref_name }}
         description: Github environment. Workflow trigger branch name by default.
 
 jobs:
+  check-backend:
+    name: Check Terraform Backend
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.ENVIRONMENT }}
+    outputs:
+      exists: ${{ steps.check.outputs.exists }}
+    steps:
+      - name: Checks for Terraform Backend environment variables
+        if: ${{ !vars.TERRAFORM_BACKEND_KMS_KEY_ARN && !vars.TERRAFORM_BACKEND_BUCKET_ARN && !vars.TERRAFORM_BACKEND_DYNAMODB_TABLE }}
+        run: echo "exists=true" >> $GITHUB_OUTPUT
+        id: check
+
+  create-backend:
+    name: Create Terraform Backend
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.ENVIRONMENT }}
+    needs: check-backend
+    if: ${{ !needs.check-backend.outputs.exists }}
+
+    defaults:
+      run:
+        working-directory: .github/workflows/terraform/backend
+
+    outputs:
+      bucket_arn: ${{ steps.terraform.outputs.bucket_arn }}
+      kms_key_arn: ${{ steps.terraform.outputs.kms_key_arn }}
+      dynamodb_table: ${{ steps.terraform.outputs.dynamodb_table }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Creates Terraform Backend
+        run: echo "Creating Terraform Backend"
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Plan
+        run: terraform plan
+
+      - name: Terraform Apply
+        run: terraform apply -auto-approve
+
+      - name: Get Terraform Output
+        id: terraform
+        run: |
+          echo "bucket_arn=$(terraform output -raw bucket_arn)" >> $GITHUB_OUTPUT
+          echo "kms_key_arn=$(terraform output -raw kms_key_arn)" >> $GITHUB_OUTPUT
+          echo "dynamodb_table=$(terraform output -raw dynamodb_table)" >> $GITHUB_OUTPUT
+
+      # ## DO NOT REMOVE - USED FOR LOCAL TESTS
+      # - name: Set up Github CLI
+      #   run: |
+      #     (type -p wget >/dev/null || (sudo apt update && sudo apt-get install wget -y)) \
+      #     && sudo mkdir -p -m 755 /etc/apt/keyrings \
+      #     && wget -qO- https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo tee /etc/apt/keyrings/githubcli-archive-keyring.gpg > /dev/null \
+      #     && sudo chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg \
+      #     && echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null \
+      #     && sudo apt update \
+      #     && sudo apt install gh -y
+
   upsert-variables:
     name: Create/Update Repository Terraform Backend environment variables
     runs-on: ubuntu-latest
+    needs: create-backend
     steps:
       - name: Save terraform outputs to repository environment
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          BUCKET_ARN: ${{ needs.create-backend.outputs.bucket_arn}}
+          KMS_KEY_ARN: ${{ needs.create-backend.outputs.kms_key_arn}}
+          DYNAMODB_TABLE: ${{ needs.create-backend.outputs.dynamodb_table}}
         run: |
-          gh variable set TEST_VAR -b "THIS IS A TEST VARIABLE" -e ${{ inputs.environment }} -R ${{ github.repository }}
-
-  # check-backend:
-  #   name: Check Terraform Backend
-  #   runs-on: ubuntu-latest
-  #   environment: ${{ inputs.environment }}
-  #   outputs:
-  #     exists: ${{ steps.check.outputs.exists }}
-  #   steps:
-  #     - name: Checks for Terraform Backend environment variables
-  #       if: ${{ !vars.TERRAFORM_BACKEND_KMS_KEY_ARN && !vars.TERRAFORM_BACKEND_BUCKET_ARN && !vars.TERRAFORM_BACKEND_DYNAMODB_TABLE }}
-  #       run: echo "exists=true" >> $GITHUB_OUTPUT
-  #       id: check
-
-  # create-backend:
-  #   name: Create Terraform Backend
-  #   runs-on: ubuntu-latest
-  #   environment: ${{ inputs.environment }}
-  #   needs: check-backend
-  #   if: ${{ !needs.check-backend.outputs.exists }}
-
-  #   defaults:
-  #     run:
-  #       working-directory: .github/workflows/terraform/backend
-
-  #   outputs:
-  #     bucket_arn: ${{ steps.terraform.outputs.bucket_arn }}
-  #     kms_key_arn: ${{ steps.terraform.outputs.kms_key_arn }}
-  #     dynamodb_table: ${{ steps.terraform.outputs.dynamodb_table }}
-
-  #   steps:
-  #     - name: Checkout code
-  #       uses: actions/checkout@v4
-
-  #     - name: Creates Terraform Backend
-  #       run: echo "Creating Terraform Backend"
-
-  #     - name: Configure AWS credentials
-  #       uses: aws-actions/configure-aws-credentials@v4
-  #       with:
-  #         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-  #         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-  #         aws-region: ${{ secrets.AWS_REGION }}
-
-  #     - name: Set up Terraform
-  #       uses: hashicorp/setup-terraform@v3
-  #       with:
-  #         terraform_wrapper: false
-
-  #     - name: Terraform Init
-  #       run: terraform init
-
-  #     - name: Terraform Plan
-  #       run: terraform plan
-
-  #     - name: Terraform Apply
-  #       run: terraform apply -auto-approve
-
-  #     - name: Get Terraform Output
-  #       id: terraform
-  #       run: |
-  #         echo "bucket_arn=$(terraform output -raw bucket_arn)" >> $GITHUB_OUTPUT
-  #         echo "kms_key_arn=$(terraform output -raw kms_key_arn)" >> $GITHUB_OUTPUT
-  #         echo "dynamodb_table=$(terraform output -raw dynamodb_table)" >> $GITHUB_OUTPUT
-
-  #     # ## DO NOT REMOVE - USED FOR LOCAL TESTS
-  #     # - name: Set up Github CLI
-  #     #   run: |
-  #     #     (type -p wget >/dev/null || (sudo apt update && sudo apt-get install wget -y)) \
-  #     #     && sudo mkdir -p -m 755 /etc/apt/keyrings \
-  #     #     && wget -qO- https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo tee /etc/apt/keyrings/githubcli-archive-keyring.gpg > /dev/null \
-  #     #     && sudo chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg \
-  #     #     && echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null \
-  #     #     && sudo apt update \
-  #     #     && sudo apt install gh -y
-
-  # upsert-variables:
-  #   name: Create/Update Repository Terraform Backend environment variables
-  #   runs-on: ubuntu-latest
-  #   needs: create-backend
-  #   steps:
-  #     - name: Save terraform outputs to repository environment
-  #       env:
-  #         GH_TOKEN: ${{ secrets.GH_TOKEN }}
-  #         BUCKET_ARN: ${{ needs.create-backend.outputs.bucket_arn}}
-  #         KMS_KEY_ARN: ${{ needs.create-backend.outputs.kms_key_arn}}
-  #         DYNAMODB_TABLE: ${{ needs.create-backend.outputs.dynamodb_table}}
-  #       run: |
-  #         gh variable set TERRAFORM_BACKEND_BUCKET_ARN -b "${{ env.BUCKET_ARN }}" -e "$${{ inputs.environment }}"
-  #         gh variable set TERRAFORM_BACKEND_KMS_KEY_ARN -b "${{ env.KMS_KEY_ARN }}" -e "$${{ inputs.environment }}"
-  #         gh variable set TERRAFORM_BACKEND_DYNAMODB_TABLE -b "${{ env.DYNAMODB_TABLE }}" -e "$${{ inputs.environment }}"
+          gh variable set TERRAFORM_BACKEND_BUCKET_ARN -b "${{ env.BUCKET_ARN }}" -e ${{ inputs.ENVIRONMENT }} -R ${{ github.repository }}
+          gh variable set TERRAFORM_BACKEND_KMS_KEY_ARN -b "${{ env.KMS_KEY_ARN }}" -e ${{ inputs.ENVIRONMENT }} -R ${{ github.repository }}
+          gh variable set TERRAFORM_BACKEND_DYNAMODB_TABLE -b "${{ env.DYNAMODB_TABLE }}" -e ${{ inputs.ENVIRONMENT }} -R ${{ github.repository }}
