@@ -2,31 +2,39 @@ name: Terraform Backend
 
 on:
   workflow_call:
+    secrets:
+      GH_TOKEN:
+        required: true
+        description: Github Token with repository environments read-write permission.
     inputs:
       environment:
         type: string
         required: false
         default: ${{ github.ref_name }}
+        description: Github environment. Workflow trigger branch name by default.
 
 jobs:
-  check-gh-status:
-    name: Check GH Sstatus
+  upsert-variables:
+    name: Create/Update Repository Terraform Backend environment variables
     runs-on: ubuntu-latest
-    environment: ${{ inputs.environment }}
     steps:
-      - name: Check GH Status
+      - name: Save terraform outputs to repository environment
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh auth status
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        run: |
+          gh variable set TEST_VAR -b "THIS IS A TEST VARIABLE" -e "$${{ inputs.environment }}"
 
   # check-backend:
   #   name: Check Terraform Backend
   #   runs-on: ubuntu-latest
   #   environment: ${{ inputs.environment }}
+  #   outputs:
+  #     exists: ${{ steps.check.outputs.exists }}
   #   steps:
   #     - name: Checks for Terraform Backend environment variables
   #       if: ${{ !vars.TERRAFORM_BACKEND_KMS_KEY_ARN && !vars.TERRAFORM_BACKEND_BUCKET_ARN && !vars.TERRAFORM_BACKEND_DYNAMODB_TABLE }}
   #       run: echo "exists=true" >> $GITHUB_OUTPUT
+  #       id: check
 
   # create-backend:
   #   name: Create Terraform Backend
@@ -34,11 +42,16 @@ jobs:
   #   environment: ${{ inputs.environment }}
   #   needs: check-backend
   #   if: ${{ !needs.check-backend.outputs.exists }}
-  #   permissions:
-  #     contents: write
+
   #   defaults:
   #     run:
   #       working-directory: .github/workflows/terraform/backend
+
+  #   outputs:
+  #     bucket_arn: ${{ steps.terraform.outputs.bucket_arn }}
+  #     kms_key_arn: ${{ steps.terraform.outputs.kms_key_arn }}
+  #     dynamodb_table: ${{ steps.terraform.outputs.dynamodb_table }}
+
   #   steps:
   #     - name: Checkout code
   #       uses: actions/checkout@v4
@@ -68,10 +81,11 @@ jobs:
   #       run: terraform apply -auto-approve
 
   #     - name: Get Terraform Output
+  #       id: terraform
   #       run: |
-  #         echo "bucket_arn=$(terraform output -raw bucket_arn)" >> $GITHUB_ENV
-  #         echo "kms_key_arn=$(terraform output -raw kms_key_arn)" >> $GITHUB_ENV
-  #         echo "dynamodb_table=$(terraform output -raw dynamodb_table)" >> $GITHUB_ENV
+  #         echo "bucket_arn=$(terraform output -raw bucket_arn)" >> $GITHUB_OUTPUT
+  #         echo "kms_key_arn=$(terraform output -raw kms_key_arn)" >> $GITHUB_OUTPUT
+  #         echo "dynamodb_table=$(terraform output -raw dynamodb_table)" >> $GITHUB_OUTPUT
 
   #     # ## DO NOT REMOVE - USED FOR LOCAL TESTS
   #     # - name: Set up Github CLI
@@ -84,10 +98,18 @@ jobs:
   #     #     && sudo apt update \
   #     #     && sudo apt install gh -y
 
-  #     - name: Save outputs to repository environment
+  # upsert-variables:
+  #   name: Create/Update Repository Terraform Backend environment variables
+  #   runs-on: ubuntu-latest
+  #   needs: create-backend
+  #   steps:
+  #     - name: Save terraform outputs to repository environment
   #       env:
-  #         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  #         GH_TOKEN: ${{ secrets.GH_TOKEN }}
+  #         BUCKET_ARN: ${{ needs.create-backend.outputs.bucket_arn}}
+  #         KMS_KEY_ARN: ${{ needs.create-backend.outputs.kms_key_arn}}
+  #         DYNAMODB_TABLE: ${{ needs.create-backend.outputs.dynamodb_table}}
   #       run: |
-  #         gh variable set TERRAFORM_BACKEND_BUCKET_ARN -b "${{ env.bucket_arn }}" -e "$${{ inputs.environment }}"
-  #         gh variable set TERRAFORM_BACKEND_KMS_KEY_ARN -b "${{ env.kms_key_arn }}" -e "$${{ inputs.environment }}"
-  #         gh variable set TERRAFORM_BACKEND_DYNAMODB_TABLE -b "${{ env.dynamodb_table }}" -e "$${{ inputs.environment }}"
+  #         gh variable set TERRAFORM_BACKEND_BUCKET_ARN -b "${{ env.BUCKET_ARN }}" -e "$${{ inputs.environment }}"
+  #         gh variable set TERRAFORM_BACKEND_KMS_KEY_ARN -b "${{ env.KMS_KEY_ARN }}" -e "$${{ inputs.environment }}"
+  #         gh variable set TERRAFORM_BACKEND_DYNAMODB_TABLE -b "${{ env.DYNAMODB_TABLE }}" -e "$${{ inputs.environment }}"
