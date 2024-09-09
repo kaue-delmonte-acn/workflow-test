@@ -22,7 +22,7 @@ jobs:
       exists: ${{ steps.check.outputs.exists }}
     steps:
       - name: Checks for Terraform Backend environment variables
-        if: ${{ vars.TERRAFORM_BACKEND_KMS_KEY_ARN && vars.TERRAFORM_BACKEND_BUCKET_ARN && vars.TERRAFORM_BACKEND_DYNAMODB_TABLE }}
+        if: ${{ vars.TERRAFORM_BACKEND_KMS_ARN && vars.TERRAFORM_BACKEND_BUCKET_ARN && vars.TERRAFORM_BACKEND_DYNAMODB_TABLE }}
         run: echo "exists=true" >> $GITHUB_OUTPUT
         id: check
 
@@ -38,8 +38,8 @@ jobs:
         working-directory: .github/workflows/terraform/backend
 
     outputs:
+      kms_arn: ${{ steps.terraform.outputs.kms_arn }}
       bucket_arn: ${{ steps.terraform.outputs.bucket_arn }}
-      kms_key_arn: ${{ steps.terraform.outputs.kms_key_arn }}
       dynamodb_table: ${{ steps.terraform.outputs.dynamodb_table }}
 
     steps:
@@ -73,8 +73,8 @@ jobs:
       - name: Get Terraform Output
         id: terraform
         run: |
+          echo "kms_arn=$(terraform output -raw kms_arn)" >> $GITHUB_OUTPUT
           echo "bucket_arn=$(terraform output -raw bucket_arn)" >> $GITHUB_OUTPUT
-          echo "kms_key_arn=$(terraform output -raw kms_key_arn)" >> $GITHUB_OUTPUT
           echo "dynamodb_table=$(terraform output -raw dynamodb_table)" >> $GITHUB_OUTPUT
 
       # ## DO NOT REMOVE - USED FOR LOCAL TESTS
@@ -97,7 +97,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
           BUCKET_ARN: ${{ needs.create-backend.outputs.bucket_arn}}
-          KMS_KEY_ARN: ${{ needs.create-backend.outputs.kms_key_arn}}
+          KMS_KEY_ARN: ${{ needs.create-backend.outputs.kms_arn}}
           DYNAMODB_TABLE: ${{ needs.create-backend.outputs.dynamodb_table}}
         run: |
           gh variable set TERRAFORM_BACKEND_BUCKET_ARN -b "${{ env.BUCKET_ARN }}" -e ${{ inputs.ENVIRONMENT }} -R ${{ github.repository }}
