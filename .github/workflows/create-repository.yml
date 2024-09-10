@@ -57,11 +57,15 @@ jobs:
           terraform_wrapper: false
 
       - name: Terraform Init
-        run:  |
-        terraform init \
-          -backend-config="bucket=${{ vars.TERRAFORM_BACKEND_BUCKET_ARN }}" \
-          -backend-config="kms_key_id=${{ vars.TERRAFORM_BACKEND_KMS_KEY_ARN }}" \
-          -backend-config="dynamodb_table=${{ vars.TERRAFORM_BACKEND_DYNAMODB_TABLE }}"
+        env:
+          BUCKET: ${{ vars.TERRAFORM_BACKEND_BUCKET_ARN }}
+          KMS_KEY: ${{ vars.TERRAFORM_BACKEND_KMS_KEY_ARN }}
+          DYNAMODB_TABLE: ${{ vars.TERRAFORM_BACKEND_DYNAMODB_TABLE }}
+        run: |
+          terraform init \
+            -backend-config="bucket=${BUCKET}" \
+            -backend-config="kms_key_id=${KMS_KEY}" \
+            -backend-config="dynamodb_table=${DYNAMODB_TABLE}"
 
       - name: Terraform Plan
         run: terraform plan
