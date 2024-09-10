@@ -1,4 +1,4 @@
-name: Terraform Backend
+name: Container Repository
 
 on:
   workflow_call:
@@ -14,40 +14,35 @@ on:
         description: Github environment. Workflow trigger branch name by default.
 
 jobs:
-  check-backend:
-    name: Check Terraform Backend
+  check-repository:
+    name: Check Container Repository
     runs-on: ubuntu-latest
     environment: ${{ inputs.ENVIRONMENT }}
     outputs:
       exists: ${{ steps.check.outputs.exists }}
     steps:
-      - name: Checks for Terraform Backend environment variables
-        if: ${{ vars.TERRAFORM_BACKEND_KMS_KEY_ARN && vars.TERRAFORM_BACKEND_BUCKET_ARN && vars.TERRAFORM_BACKEND_DYNAMODB_TABLE }}
+      - name: Checks for Container Repository environment variables
+        if: ${{ vars.CONTAINER_REPOSITORY_URL }}
         run: echo "exists=true" >> $GITHUB_OUTPUT
         id: check
 
-  create-backend:
-    name: Create Terraform Backend
+  create-repository:
+    name: Create Container Repository
     runs-on: ubuntu-latest
     environment: ${{ inputs.ENVIRONMENT }}
-    needs: check-backend
-    if: ${{ !needs.check-backend.outputs.exists }}
+    needs: check-repository
+    if: ${{ !needs.check-repository.outputs.exists }}
 
     defaults:
       run:
-        working-directory: .github/workflows/terraform/backend
+        working-directory: .github/workflows/container/repository
 
     outputs:
-      bucket_arn: ${{ steps.terraform.outputs.bucket_arn }}
-      kms_key_arn: ${{ steps.terraform.outputs.kms_key_arn }}
-      dynamodb_table: ${{ steps.terraform.outputs.dynamodb_table }}
+      CONTAINER_REPOSITORY_URL: ${{ steps.terraform.outputs.CONTAINER_REPOSITORY_URL }}
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
-      - name: Creates Terraform Backend
-        run: echo "Creating Terraform Backend"
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -62,7 +57,11 @@ jobs:
           terraform_wrapper: false
 
       - name: Terraform Init
-        run: terraform init
+        run:  |
+        terraform init \
+          -backend-config="bucket=${{ vars.TERRAFORM_BACKEND_BUCKET_ARN }}" \
+          -backend-config="kms_key_id=${{ vars.TERRAFORM_BACKEND_KMS_KEY_ARN }}" \
+          -backend-config="dynamodb_table=${{ vars.TERRAFORM_BACKEND_DYNAMODB_TABLE }}"
 
       - name: Terraform Plan
         run: terraform plan
@@ -73,9 +72,7 @@ jobs:
       - name: Get Terraform Output
         id: terraform
         run: |
-          echo "BUCKET_ARN=$(terraform output -raw bucket_arn)" >> $GITHUB_ENV
-          echo "KMS_KEY_ARN=$(terraform output -raw kms_key_arn)" >> $GITHUB_ENV
-          echo "DYNAMODB_TABLE=$(terraform output -raw dynamodb_table)" >> $GITHUB_ENV
+          echo "CONTAINER_REPOSITORY_URL=$(terraform output -raw container_repository_url)" >> $GITHUB_ENV
 
       # ## DO NOT REMOVE - USED FOR LOCAL TESTS
       # - name: Set up Github CLI
@@ -92,6 +89,4 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
-          gh variable set TERRAFORM_BACKEND_BUCKET_ARN -b "${{ env.BUCKET_ARN }}" -e ${{ inputs.ENVIRONMENT }} -R ${{ github.repository }}
-          gh variable set TERRAFORM_BACKEND_KMS_KEY_ARN -b "${{ env.KMS_KEY_ARN }}" -e ${{ inputs.ENVIRONMENT }} -R ${{ github.repository }}
-          gh variable set TERRAFORM_BACKEND_DYNAMODB_TABLE -b "${{ env.DYNAMODB_TABLE }}" -e ${{ inputs.ENVIRONMENT }} -R ${{ github.repository }}
+          gh variable set CONTAINER_REPOSITORY_URL -b "${{ env.CONTAINER_REPOSITORY_URL }}" -e ${{ inputs.ENVIRONMENT }} -R ${{ github.repository }}
