@@ -8,11 +8,11 @@ on:
 jobs:
   check-terraform-backend:
     name: Checks/Create Terraform Backend
-    uses: ./.github/workflows/terraform/create-terraform-backend.yml
+    uses: ./.github/workflows/create-terraform-backend.yml
     secrets: inherit
 
   check-container-repository:
     name: Checks for Container Repository
-    uses: ./.github/workflows/container/create-repository.yml
+    uses: ./.github/workflows/create-repository.yml
     secrets: inherit
     needs: check-terraform-backend
